@@ -95,4 +95,6 @@ setInterval(() => {
 }, 600000); // 10 minutes
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Guardian Bridge Live on Port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Bridge is running on port ${PORT}`);
+});
