@@ -31,4 +31,68 @@ app.get('/stream', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => console.log(`Bridge online on port ${PORT}`));
+const express = require('express');
+const cors = require('cors');
+const yts = require('yt-search');
+const ytdl = require('ytdl-core');
+const axios = require('axios');
+
+const app = express();
+app.use(cors());
+
+// --- 1. SEARCH ENDPOINT (The Tubidy Logic) ---
+app.get('/search', async (req, res) => {
+    try {
+        const query = req.query.q;
+        const r = await yts(query);
+        const videos = r.videos.slice(0, 10);
+        res.json(videos.map(v => ({
+            title: v.title,
+            author: v.author.name,
+            url: v.url,
+            thumbnail: v.thumbnail,
+            timestamp: v.timestamp
+        })));
+    } catch (err) {
+        res.status(500).json({ error: "Search Failed" });
+    }
+});
+
+// --- 2. STREAMING ENDPOINT (Full Tracks) ---
+app.get('/stream', async (req, res) => {
+    try {
+        const query = req.query.q;
+        // Find the best audio match
+        const r = await yts(query);
+        const videoUrl = r.videos[0].url;
+
+        res.setHeader('Content-Type', 'audio/mpeg');
+        
+        // Pipe the audio directly to the website player
+        ytdl(videoUrl, {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25
+        }).pipe(res);
+
+    } catch (err) {
+        res.status(500).send("Streaming Error");
+    }
+});
+
+// --- 3. THE "AUTO-WAKE" PROTOCOL ---
+// This pings your server every 10 minutes so it never sleeps
+const BRIDGE_URL = `https://guardian-bridge.onrender.com/ping`;
+
+app.get('/ping', (req, res) => res.send('System Active'));
+
+setInterval(() => {
+    axios.get(BRIDGE_URL)
+        .then(() => console.log("Self-Wake: Signal Maintained"))
+        .catch((e) => console.log("Wake Error: Bridge Sleeping"));
+}, 600000); // 10 minutes
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Guardian Bridge Live on Port ${PORT}`));
