@@ -1,7 +1,6 @@
 {
   "name": "guardian-bridge",
   "version": "1.0.0",
-  "description": "HQ Audio Bridge for Pulse FM",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
