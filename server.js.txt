@@ -1,0 +1,34 @@
+const express = require('express');
+const ytdl = require('ytdl-core');
+const yts = require('yt-search');
+const cors = require('cors');
+const app = express();
+
+app.use(cors());
+
+app.get('/stream', async (req, res) => {
+    try {
+        const query = req.query.q;
+        if (!query) return res.status(400).send('Operator: Query required');
+
+        const r = await yts(query);
+        const video = r.videos[0]; 
+        if (!video) return res.status(404).send('Signal not found');
+
+        // Set headers so the browser treats this as an MP3 file
+        res.setHeader('Content-Type', 'audio/mpeg');
+        
+        // Pipe the high-quality audio stream directly to your website
+        ytdl(video.url, {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25 // Buffer for smoother playback
+        }).pipe(res);
+
+    } catch (e) {
+        res.status(500).send('Transmission Failure');
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Bridge online on port ${PORT}`));
